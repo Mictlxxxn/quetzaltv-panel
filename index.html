@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Quetzal TV — Panel Administrativo (GitHub Pages Edition)</title>
+  <style>
+    :root {
+      --bg: #071310;
+      --card: #0d211b;
+      --card-border: #173d31;
+      --emerald: #00e5a3;
+      --emerald-dark: #00b37e;
+      --gold: #f4c563;
+      --text: #e9f5f0;
+      --muted: #8ab3a5;
+      --danger: #ff5c6c;
+      --info: #4cc9f0;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', system-ui, sans-serif; }
+    body { background: radial-gradient(circle at top right, #0e2c23, var(--bg)); color: var(--text); min-height: 100vh; padding: 28px 36px; }
+    .top-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; border-bottom: 1px solid var(--card-border); padding-bottom: 18px; }
+    .brand { display: flex; align-items: center; gap: 14px; }
+    .brand-badge { width: 44px; height: 44px; border-radius: 12px; background: linear-gradient(135deg, var(--emerald), var(--gold)); display: flex; align-items: center; justify-content: center; font-weight: 900; color: #05140f; font-size: 22px; }
+    .brand h1 { font-size: 22px; font-weight: 800; color: var(--gold); }
+    .brand p { font-size: 12px; color: var(--muted); }
+    .card { background: var(--card); border: 1px solid var(--card-border); border-radius: 14px; padding: 22px; margin-bottom: 22px; }
+    .card h3 { font-size: 16px; color: var(--gold); margin-bottom: 14px; border-bottom: 1px solid var(--card-border); padding-bottom: 8px; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin-bottom: 14px; }
+    input, select { background: #06120e; border: 1px solid var(--card-border); color: var(--text); padding: 10px 12px; border-radius: 8px; font-size: 13px; width: 100%; }
+    .btn { background: linear-gradient(135deg, var(--emerald), var(--emerald-dark)); color: #041510; border: none; padding: 10px 18px; border-radius: 8px; font-weight: 700; cursor: pointer; font-size: 13px; }
+    .btn-save { background: linear-gradient(135deg, var(--gold), #e09f2d); color: #041510; border: none; padding: 11px 22px; border-radius: 10px; font-weight: 800; cursor: pointer; font-size: 14px; }
+    .btn-sm { padding: 5px 10px; border-radius: 6px; font-size: 11px; cursor: pointer; margin-right: 4px; border: 1px solid transparent; }
+    .btn-info { background: rgba(76, 201, 240, 0.18); color: var(--info); border-color: rgba(76, 201, 240, 0.4); }
+    .btn-warn { background: rgba(244, 197, 99, 0.18); color: var(--gold); border-color: rgba(244, 197, 99, 0.4); }
+    .btn-danger { background: rgba(255, 92, 108, 0.18); color: var(--danger); border-color: rgba(255, 92, 108, 0.4); }
+    table { width: 100%; border-collapse: collapse; font-size: 13px; margin-top: 8px; }
+    th, td { text-align: left; padding: 11px 10px; border-bottom: 1px solid var(--card-border); }
+    th { color: var(--gold); font-size: 11px; text-transform: uppercase; }
+    .badge { padding: 3px 9px; border-radius: 99px; font-size: 11px; font-weight: 700; }
+    .badge-ok { background: rgba(0, 229, 163, 0.15); color: var(--emerald); }
+    .badge-off { background: rgba(255, 92, 108, 0.15); color: var(--danger); }
+  </style>
+</head>
+<body>
+  <div class="top-bar">
+    <div class="brand">
+      <div class="brand-badge">Q</div>
+      <div>
+        <h1>QUETZAL TV — PANEL ADMINISTRATIVO (GITHUB PAGES)</h1>
+        <p>Hosting 100% Gratuito 24/7 con HTTPS • Sincronización Directa con <code>db.json</code> en tu Repositorio</p>
+      </div>
+    </div>
+    <button class="btn-save" onclick="pushToGitHub()">☁ GUARDAR CAMBIOS EN GITHUB</button>
+  </div>
+
+  <!-- CONFIGURACIÓN DE CONEXIÓN A GITHUB API -->
+  <div class="card">
+    <h3>1. Configuración de tu Repositorio de GitHub (Se guarda en tu navegador)</h3>
+    <div class="grid">
+      <input id="gh-owner" placeholder="Tu Usuario de GitHub (ej. Mictlxn)" />
+      <input id="gh-repo" placeholder="Nombre del Repo (ej. quetzaltv-panel)" />
+      <input id="gh-branch" value="main" placeholder="Rama (main)" />
+      <input id="gh-token" type="password" placeholder="GitHub Personal Access Token (ghp_...)" />
+      <button class="btn" onclick="saveGhConfig()">Guardar Credenciales GitHub</button>
+    </div>
+    <p id="gh-status" style="font-size:12px;color:var(--emerald);margin-top:6px;">
+      URL para poner en tu APK: <code id="apk-url"></code>
+    </p>
+  </div>
+
+  <!-- CREAR USUARIOS VIP -->
+  <div class="card">
+    <h3>2. Usuarios VIP, Contraseñas y Control de TV Box (`SN`)</h3>
+    <div class="grid">
+      <input id="u-name" placeholder="Usuario (ej. cliente1)" />
+      <input id="u-pass" placeholder="Contraseña (ej. 123456)" value="123456" />
+      <input id="u-sn" placeholder="Serial SN de TV Box (opcional para fijar a 1 sola TV)" />
+      <select id="u-days">
+        <option value="30">30 Días VIP</option>
+        <option value="90">90 Días VIP</option>
+        <option value="365">365 Días VIP (1 Año)</option>
+      </select>
+      <button class="btn" onclick="addUser()">+ Agregar Usuario</button>
+    </div>
+    <table>
+      <thead><tr><th>ID</th><th>Usuario</th><th>Contraseña</th><th>SN Permitido (Opcional)</th><th>Sesión #</th><th>Estado</th><th>Vencimiento</th><th>Acciones</th></tr></thead>
+      <tbody id="tbl-users"></tbody>
+    </table>
+  </div>
+
+  <!-- PINES VIP Y AVISO -->
+  <div class="card">
+    <h3>3. Pines de Activación VIP y Aviso Global</h3>
+    <div class="grid">
+      <input id="c-plan" value="Quetzal VIP 1 Mes" placeholder="Nombre del Plan" />
+      <select id="c-days"><option value="30">30 Días</option><option value="90">90 Días</option><option value="365">365 Días</option></select>
+      <button class="btn" onclick="addPin()">+ Generar PIN VIP</button>
+      <input id="n-msg" placeholder="Mensaje de Bienvenida en TV" />
+      <button class="btn" onclick="updateNotice()">Actualizar Aviso</button>
+    </div>
+    <table>
+      <thead><tr><th>Código PIN</th><th>Plan</th><th>Días</th><th>Estado</th><th>Acción</th></tr></thead>
+      <tbody id="tbl-codes"></tbody>
+    </table>
+  </div>
+
+  <script>
+    let db = { updated_at: "", notice: { title: "Quetzal TV 4K", message: "" }, users: [], codes: [] };
+
+    document.getElementById('apk-url').textContent = window.location.origin + window.location.pathname.replace(/\/index\.html$/, '').replace(/\/$/, '');
+
+    function loadGhConfig() {
+      document.getElementById('gh-owner').value = localStorage.getItem('qtz_gh_owner') || '';
+      document.getElementById('gh-repo').value = localStorage.getItem('qtz_gh_repo') || '';
+      document.getElementById('gh-branch').value = localStorage.getItem('qtz_gh_branch') || 'main';
+      document.getElementById('gh-token').value = localStorage.getItem('qtz_gh_token') || '';
+    }
+
+    function saveGhConfig() {
+      localStorage.setItem('qtz_gh_owner', document.getElementById('gh-owner').value.trim());
+      localStorage.setItem('qtz_gh_repo', document.getElementById('gh-repo').value.trim());
+      localStorage.setItem('qtz_gh_branch', document.getElementById('gh-branch').value.trim() || 'main');
+      localStorage.setItem('qtz_gh_token', document.getElementById('gh-token').value.trim());
+      alert('Credenciales de GitHub guardadas en tu navegador.');
+    }
+
+    async function loadDb() {
+      try {
+        const res = await fetch('./db.json?t=' + Date.now());
+        db = await res.json();
+      } catch (e) {
+        console.warn('Usando base local inicial', e);
+      }
+      render();
+    }
+
+    function render() {
+      document.getElementById('n-msg').value = (db.notice && db.notice.message) || '';
+      document.getElementById('tbl-users').innerHTML = (db.users || []).map((u, idx) => `
+        <tr>
+          <td><b>${u.user_id}</b></td>
+          <td><b style="color:var(--emerald)">${u.username}</b></td>
+          <td><code>${u.password}</code></td>
+          <td><code>${u.allowed_sn || 'Cualquier TV Box'}</code></td>
+          <td>v${u.reset_token || 1}</td>
+          <td><span class="badge ${u.status === 'ACTIVE' ? 'badge-ok' : 'badge-off'}">${u.status}</span></td>
+          <td>${u.expire_date}</td>
+          <td>
+            <button class="btn-sm btn-info" onclick="renewUser(${idx})">+30 Días</button>
+            <button class="btn-sm btn-warn" onclick="forceRelogin(${idx})">Cerrar Sesión TV</button>
+            <button class="btn-sm btn-warn" onclick="toggleUser(${idx})">${u.status === 'ACTIVE' ? 'Suspender' : 'Activar'}</button>
+            <button class="btn-sm btn-danger" onclick="delUser(${idx})">✕</button>
+          </td>
+        </tr>
+      `).join('');
+
+      document.getElementById('tbl-codes').innerHTML = (db.codes || []).map((c, idx) => `
+        <tr>
+          <td><code style="color:var(--emerald);font-weight:700;">${c.code}</code></td>
+          <td>${c.plan_name}</td>
+          <td>${c.days} días</td>
+          <td><span class="badge ${c.status === 'AVAILABLE' ? 'badge-ok' : 'badge-off'}">${c.status}</span></td>
+          <td><button class="btn-sm btn-danger" onclick="delCode(${idx})">Eliminar</button></td>
+        </tr>
+      `).join('');
+    }
+
+    function addUser() {
+      const username = document.getElementById('u-name').value.trim();
+      const password = document.getElementById('u-pass').value.trim() || '123456';
+      const allowed_sn = document.getElementById('u-sn').value.trim().toUpperCase();
+      const days = parseInt(document.getElementById('u-days').value);
+      if (!username) return alert('Ingresa un usuario');
+      const exp = new Date(Date.now() + days * 86400000).toISOString().slice(0, 10);
+      db.users.unshift({
+        id: Date.now(),
+        user_id: 'QTZ-' + Math.floor(1000 + Math.random() * 9000),
+        username,
+        password,
+        max_devices: 2,
+        allowed_sn,
+        status: 'ACTIVE',
+        expire_date: exp,
+        reset_token: 1
+      });
+      document.getElementById('u-name').value = '';
+      document.getElementById('u-sn').value = '';
+      render();
+    }
+
+    function renewUser(idx) {
+      const u = db.users[idx];
+      const base = Math.max(Date.now(), new Date(u.expire_date).getTime() || Date.now());
+      u.expire_date = new Date(base + 30 * 86400000).toISOString().slice(0, 10);
+      u.status = 'ACTIVE';
+      render();
+    }
+
+    function forceRelogin(idx) {
+      db.users[idx].reset_token = (db.users[idx].reset_token || 1) + 1;
+      alert('Sesión reiniciada (v' + db.users[idx].reset_token + '). Haz clic en "GUARDAR CAMBIOS EN GITHUB" para obligar a la TV Box a pedir contraseña de nuevo.');
+      render();
+    }
+
+    function toggleUser(idx) {
+      db.users[idx].status = db.users[idx].status === 'ACTIVE' ? 'SUSPENDED' : 'ACTIVE';
+      render();
+    }
+
+    function delUser(idx) { db.users.splice(idx, 1); render(); }
+
+    function addPin() {
+      const plan_name = document.getElementById('c-plan').value.trim() || 'Quetzal VIP';
+      const days = parseInt(document.getElementById('c-days').value);
+      const r1 = Math.floor(1000 + Math.random() * 9000);
+      const r2 = Math.floor(1000 + Math.random() * 9000);
+      db.codes.unshift({
+        id: Date.now(),
+        code: `QTZ-VIP${days}-${r1}-${r2}`,
+        plan_name,
+        days,
+        status: 'AVAILABLE'
+      });
+      render();
+    }
+
+    function delCode(idx) { db.codes.splice(idx, 1); render(); }
+
+    function updateNotice() {
+      db.notice = { title: 'Quetzal TV 4K', message: document.getElementById('n-msg').value.trim() };
+      alert('Aviso actualizado en memoria. Pulsa "GUARDAR CAMBIOS EN GITHUB".');
+    }
+
+    async function pushToGitHub() {
+      saveGhConfig();
+      const owner = localStorage.getItem('qtz_gh_owner');
+      const repo = localStorage.getItem('qtz_gh_repo');
+      const branch = localStorage.getItem('qtz_gh_branch') || 'main';
+      const token = localStorage.getItem('qtz_gh_token');
+      if (!owner || !repo || !token) {
+        return alert('Completa primero tu Usuario de GitHub, Nombre del Repositorio y Token (PAT) en la sección 1.');
+      }
+      db.updated_at = new Date().toISOString().slice(0, 16).replace('T', ' ');
+      const apiUrl = `https://api.github.com/repos/${owner}/${repo}/contents/db.json`;
+      const headers = { 'Authorization': `Bearer ${token}`, 'Accept': 'application/vnd.github+json', 'Content-Type': 'application/json' };
+      try {
+        let sha = undefined;
+        const getRes = await fetch(apiUrl + `?ref=${branch}`, { headers });
+        if (getRes.ok) {
+          const fileData = await getRes.json();
+          sha = fileData.sha;
+        }
+        const contentB64 = btoa(unescape(encodeURIComponent(JSON.stringify(db, null, 2))));
+        const putRes = await fetch(apiUrl, {
+          method: 'PUT',
+          headers,
+          body: JSON.stringify({
+            message: 'Actualización de usuarios Quetzal TV (' + db.updated_at + ')',
+            content: contentB64,
+            branch,
+            sha
+          })
+        });
+        if (!putRes.ok) {
+          const err = await putRes.text();
+          throw new Error(err);
+        }
+        alert('✓ ¡Cambios guardados y publicados en GitHub Pages exitosamente!');
+      } catch (e) {
+        alert('Error al guardar en GitHub: ' + e.message);
+      }
+    }
+
+    loadGhConfig();
+    loadDb();
+  </script>
+</body>
+</html>

@@ -1,0 +1,54 @@
+{
+  "updated_at": "2026-11-18 13:45",
+  "notice": {
+    "title": "Bienvenidos a Quetzal TV 4K",
+    "message": "Disfruta del mejor contenido en vivo, películas y series 4K sin anuncios."
+  },
+  "users": [
+    {
+      "id": 1,
+      "user_id": "QTZ-1000",
+      "username": "admin",
+      "password": "123456",
+      "max_devices": 3,
+      "allowed_sn": "",
+      "status": "ACTIVE",
+      "expire_date": "2027-11-18",
+      "reset_token": 1
+    },
+    {
+      "id": 2,
+      "user_id": "QTZ-1005",
+      "username": "quetzal",
+      "password": "123456",
+      "max_devices": 2,
+      "allowed_sn": "",
+      "status": "ACTIVE",
+      "expire_date": "2026-12-18",
+      "reset_token": 1
+    }
+  ],
+  "codes": [
+    {
+      "id": 1,
+      "code": "QTZ-VIP30-8841-9920",
+      "plan_name": "Quetzal VIP 1 Mes",
+      "days": 30,
+      "status": "AVAILABLE"
+    },
+    {
+      "id": 2,
+      "code": "QTZ-VIP90-3312-7740",
+      "plan_name": "Quetzal VIP 3 Meses",
+      "days": 90,
+      "status": "AVAILABLE"
+    },
+    {
+      "id": 3,
+      "code": "QTZ-VIP365-9900-1122",
+      "plan_name": "Quetzal VIP 1 Año 4K",
+      "days": 365,
+      "status": "AVAILABLE"
+    }
+  ]
+}
