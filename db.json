@@ -1,54 +1,5 @@
 {
-  "updated_at": "2026-11-18 13:45",
-  "notice": {
-    "title": "Bienvenidos a Quetzal TV 4K",
-    "message": "Disfruta del mejor contenido en vivo, películas y series 4K sin anuncios."
-  },
-  "users": [
-    {
-      "id": 1,
-      "user_id": "QTZ-1000",
-      "username": "admin",
-      "password": "123456",
-      "max_devices": 3,
-      "allowed_sn": "",
-      "status": "ACTIVE",
-      "expire_date": "2027-11-18",
-      "reset_token": 1
-    },
-    {
-      "id": 2,
-      "user_id": "QTZ-1005",
-      "username": "quetzal",
-      "password": "123456",
-      "max_devices": 2,
-      "allowed_sn": "",
-      "status": "ACTIVE",
-      "expire_date": "2026-12-18",
-      "reset_token": 1
-    }
-  ],
-  "codes": [
-    {
-      "id": 1,
-      "code": "QTZ-VIP30-8841-9920",
-      "plan_name": "Quetzal VIP 1 Mes",
-      "days": 30,
-      "status": "AVAILABLE"
-    },
-    {
-      "id": 2,
-      "code": "QTZ-VIP90-3312-7740",
-      "plan_name": "Quetzal VIP 3 Meses",
-      "days": 90,
-      "status": "AVAILABLE"
-    },
-    {
-      "id": 3,
-      "code": "QTZ-VIP365-9900-1122",
-      "plan_name": "Quetzal VIP 1 Año 4K",
-      "days": 365,
-      "status": "AVAILABLE"
-    }
-  ]
+  "v": 2,
+  "iv": "a80f480f29d0307df8b8885f61045847",
+  "payload": "ZRwJgxGTPFNGEGWvbma7/paFIZk2mFwA/897u9RS9G6fCGGUAR5R1zaVja4A4mc7DnI+fwJ9X+mU5vgwmLmSB+OuXCmdwcI7daErh6nkD8/eoYwur8BRMHWFra6Kki6qNiocRF8y5GxqAe5caJPIeu8KZO03NG5FxeQnIwMRcdNRP/DYFeR/m83IimjvQ4si2bUSM/T+TsxqqmzM3ziM1n7grfL57kPch8pzmZfBOc1+LaLovAk4cx3McMxlLqtmorfm00hfLR57M+L3kgFQ52jts6IPr9vZ/b6rCCU474riRMudUe6em1AeovEbeknpPmZQ5adIDbJuP6A3CkgRPLQGsfJD5zDQLrhCk84QI31cwbNJiVFZcZW0OHBNLcXfVM4d7PSnNI/Ee2Y5GmgFvDZXUutY2EPIRLKipkpRCUOmZuXay9k9nOEBAHLJ4XFYVlFEQLY/InH+r9+6isRYgN+9J3zRULTFnSr0hZ5Hk2fJDjz8qgWM2HzcgNOhm7WiyTJqXMfI8dCAHF1BTbH2ndC3FJ8sFVxLtuHkDZVofXtgu16uc50fC8R7jbXc3mUfiUOD6wxauVl3SsSv4xa7wtEbUK9wRJ2lWD9gYApsf76Ap19b9sxg0GhEDItbf9jYTQC2F2qYKCn74C5ZMYor1Q0NtJC/9cNKZCrv6tpSwIZfFh26NBHXprbrSQFlzfDqEVFNea0ob4WMar+ZBhVVNWpzw5jVqkFCb6zZsxeXDq3VXQlYzVYAxtXvPXb0orUANd/vqPwCffarXD1RQ2wqE5zifJKGMi0pz92urA4juZ/g9WCcEJenM44J3g9VDp3QEL/wUI7vaxFTJRX700x4SerAGwIXzYHlIZUBLFmmVBdOU7odag3HgsBghVUm8XDmPu0hdxceEs22vL71TgFGSp4DZBbhnkTM/D4rjodbNqQP/Uiwa8EC5/X+5yRsDzn1HmEQJe1052LHlu8fzihtKMQkjeQvHbPQ87ulRwM6uxk1Y5FApVGmF6ZkkWqfmK6qLnX+QYu3aiPMshWOSuwXk3UM0/vHIgOusqazZa4UwmZRt0LfUgDokzUBek1MtlXyNLRqUZVKtk0KKeOnBb/+tB3U+qMLPljpTFknfcxeY+/FpdGZOEijJRQK45LGVujsjMA6GZtKQyx38BYKrE6DU5gEHCwEjOwgHLqUfI3uwvc7prLcyZsC8yaQRu9I2KiMycSQWZXXM7JIUJehcKyuP0NgnunKRIZJt+hmIjp9SbwK94k6IunqT5eTbufL5raU9d1PvBoiCTVPg2L20QgpqTIhtBNc383tmdDKcBRs5lxUAjwhU/yjtpm5bR39kFE7yaQWtkqdO7qMrnb0fJUXTtp8lBkkQBXYB65VEyoFi7IyI6mtGKrsAjBfyUSw1v31OXC+VpByLWa1ToJCDYeKNPR0jm1MuseK40GdgFRzLyJZkKl2ugmMBQYkGRRIuqvo9OKQL0Te8/j2x1Bz7PtkVQ37B0aZlcp24yuss9mVYLPdvani0Cclmbv1SrU76lBGCjiW+4pCxKmhj/SbvlhG72/Tndezi99o94CSyHawft0="
 }
