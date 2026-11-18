@@ -73,10 +73,12 @@
         </div>
       </div>
       <div>
-        <button class="btn-save" onclick="pushToGitHub()">☁ GUARDAR CAMBIOS EN GITHUB</button>
+        <span id="sync-pill" style="font-size:12px;color:var(--emerald);margin-right:10px;font-weight:bold;">✓ Sincronizado</span>
+        <button class="btn-save" onclick="pushToGitHub(false)">☁ GUARDAR AHORA</button>
         <button class="btn-logout" onclick="doAdminLogout()">Cerrar Sesión</button>
       </div>
     </div>
+    <div id="qtz-toast" style="position:fixed;bottom:20px;right:20px;background:#0d211b;border:1px solid #00e5a3;color:#e6fff7;padding:10px 16px;border-radius:10px;font-size:13px;display:none;z-index:9999;box-shadow:0 6px 20px rgba(0,0,0,0.45);"></div>
 
     <!-- CONFIGURACIÓN DE CONEXIÓN A GITHUB API -->
     <div class="card">
@@ -298,6 +300,7 @@
       document.getElementById('u-name').value = '';
       document.getElementById('u-sn').value = '';
       render();
+      scheduleAutoSave('Usuario agregado');
     }
 
     function renewUser(idx) {
@@ -306,20 +309,27 @@
       u.expire_date = new Date(base + 30 * 86400000).toISOString().slice(0, 10);
       u.status = 'ACTIVE';
       render();
+      scheduleAutoSave('Suscripción renovada +30d');
     }
 
     function forceRelogin(idx) {
       db.users[idx].reset_token = (db.users[idx].reset_token || 1) + 1;
-      alert('Sesión reiniciada (v' + db.users[idx].reset_token + '). Pulsa "GUARDAR CAMBIOS EN GITHUB" para aplicar.');
       render();
+      scheduleAutoSave('Sesión reiniciada (v' + db.users[idx].reset_token + ')');
     }
 
     function toggleUser(idx) {
       db.users[idx].status = db.users[idx].status === 'ACTIVE' ? 'SUSPENDED' : 'ACTIVE';
+      const st = db.users[idx].status === 'ACTIVE' ? 'activada' : 'suspendida';
       render();
+      scheduleAutoSave('Cuenta ' + db.users[idx].username + ' ' + st);
     }
 
-    function delUser(idx) { db.users.splice(idx, 1); render(); }
+    function delUser(idx) {
+      db.users.splice(idx, 1);
+      render();
+      scheduleAutoSave('Usuario eliminado');
+    }
 
     function addPin() {
       const plan_name = document.getElementById('c-plan').value.trim() || 'Quetzal VIP';
@@ -334,24 +344,68 @@
         status: 'AVAILABLE'
       });
       render();
+      scheduleAutoSave('PIN VIP generado');
     }
 
-    function delCode(idx) { db.codes.splice(idx, 1); render(); }
+    function delCode(idx) {
+      db.codes.splice(idx, 1);
+      render();
+      scheduleAutoSave('PIN eliminado');
+    }
 
     function updateNotice() {
       db.notice = { title: 'Quetzal TV 4K', message: document.getElementById('n-msg').value.trim() };
-      alert('Aviso actualizado en memoria. Pulsa "GUARDAR CAMBIOS EN GITHUB".');
+      scheduleAutoSave('Aviso actualizado');
     }
 
-    async function pushToGitHub() {
+    let syncTimer = null;
+    let isSyncing = false;
+    let pendingSync = false;
+
+    function showToast(msg, ok = true) {
+      const t = document.getElementById('qtz-toast');
+      if (!t) return;
+      t.textContent = msg;
+      t.style.borderColor = ok ? '#00e5a3' : '#f4c563';
+      t.style.display = 'block';
+      clearTimeout(t._tm);
+      t._tm = setTimeout(() => { t.style.display = 'none'; }, 3200);
+    }
+
+    function setSyncPill(text, color) {
+      const p = document.getElementById('sync-pill');
+      if (p) { p.textContent = text; p.style.color = color; }
+    }
+
+    function scheduleAutoSave(reason) {
+      try { localStorage.setItem('qtz_db_draft', JSON.stringify(db)); } catch (_) {}
+      const token = localStorage.getItem('qtz_gh_token');
+      if (!token) {
+        setSyncPill('● Cambios sin publicar (falta Token)', '#f4c563');
+        showToast(reason + ' — Configura tu Token PAT para autoguardado en GitHub', false);
+        return;
+      }
+      setSyncPill('⏳ Sincronizando...', '#f4c563');
+      clearTimeout(syncTimer);
+      syncTimer = setTimeout(() => pushToGitHub(true, reason), 600);
+    }
+
+    async function pushToGitHub(silent = false, reason = '') {
       saveGhConfig();
       const owner = localStorage.getItem('qtz_gh_owner');
       const repo = localStorage.getItem('qtz_gh_repo');
       const branch = localStorage.getItem('qtz_gh_branch') || 'main';
       const token = localStorage.getItem('qtz_gh_token');
       if (!owner || !repo || !token) {
-        return alert('Completa tu Usuario de GitHub, Nombre del Repositorio y Token (PAT) en la sección 1.');
+        if (!silent) alert('Completa tu Usuario de GitHub, Nombre del Repositorio y Token (PAT) en la sección 1.');
+        return;
       }
+      if (isSyncing) {
+        pendingSync = true;
+        return;
+      }
+      isSyncing = true;
+      setSyncPill('⏳ Publicando...', '#f4c563');
       db.updated_at = new Date().toISOString().slice(0, 16).replace('T', ' ');
       const encryptedObj = await encryptDbJson(db);
 
@@ -359,7 +413,7 @@
       const headers = { 'Authorization': `Bearer ${token}`, 'Accept': 'application/vnd.github+json', 'Content-Type': 'application/json' };
       try {
         let sha = undefined;
-        const getRes = await fetch(apiUrl + `?ref=${branch}`, { headers });
+        const getRes = await fetch(apiUrl + `?ref=${branch}&t=${Date.now()}`, { headers });
         if (getRes.ok) {
           const fileData = await getRes.json();
           sha = fileData.sha;
@@ -376,9 +430,23 @@
           })
         });
         if (!putRes.ok) throw new Error(await putRes.text());
-        alert('✓ ¡Base de datos cifrada con AES-256 y publicada en GitHub Pages!');
+        localStorage.removeItem('qtz_db_draft');
+        setSyncPill('✓ Sincronizado (' + db.updated_at.slice(11) + ')', '#00e5a3');
+        if (silent) {
+          showToast('✓ ' + (reason || 'Cambios guardados') + ' y publicado en GitHub');
+        } else {
+          showToast('✓ Base de datos cifrada y publicada en GitHub Pages');
+        }
       } catch (e) {
-        alert('Error al guardar en GitHub: ' + e.message);
+        setSyncPill('⚠ Error al sincronizar', '#ff6b6b');
+        if (!silent) alert('Error al guardar en GitHub: ' + e.message);
+        else showToast('⚠ Error al publicar en GitHub: ' + e.message, false);
+      } finally {
+        isSyncing = false;
+        if (pendingSync) {
+          pendingSync = false;
+          pushToGitHub(true, 'Cambios pendientes');
+        }
       }
     }
 
