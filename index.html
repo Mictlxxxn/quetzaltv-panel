@@ -84,11 +84,11 @@
     <div class="card">
       <h3>1. Configuración de tu Repositorio de GitHub (Guardado solo en tu navegador)</h3>
       <div class="grid">
-        <input id="gh-owner" placeholder="Tu Usuario de GitHub (ej. Mictlxxxn)" />
-        <input id="gh-repo" placeholder="Nombre del Repo (ej. quetzaltv-panel)" />
-        <input id="gh-branch" value="main" placeholder="Rama (main)" />
-        <input id="gh-token" type="password" placeholder="GitHub Personal Access Token (ghp_...)" />
-        <button class="btn" onclick="saveGhConfig()">Guardar Credenciales GitHub</button>
+        <input id="gh-owner" oninput="saveGhConfig(true)" placeholder="Tu Usuario de GitHub (ej. Mictlxxxn)" />
+        <input id="gh-repo" oninput="saveGhConfig(true)" placeholder="Nombre del Repo (ej. quetzaltv-panel)" />
+        <input id="gh-branch" oninput="saveGhConfig(true)" value="main" placeholder="Rama (main)" />
+        <input id="gh-token" oninput="saveGhConfig(true)" type="password" placeholder="GitHub Personal Access Token (ghp_... o github_pat_...)" />
+        <button class="btn" onclick="testGhToken()">Probar y Guardar Token</button>
       </div>
       <p id="gh-status" style="font-size:12px;color:var(--emerald);margin-top:6px;">
         URL de conexión segura para la APK: <code id="apk-url"></code> (Base <code>db.json</code> cifrada con AES-256)
@@ -229,21 +229,74 @@
       document.getElementById('gh-token').value = localStorage.getItem('qtz_gh_token') || '';
     }
 
-    function saveGhConfig() {
-      localStorage.setItem('qtz_gh_owner', document.getElementById('gh-owner').value.trim());
-      localStorage.setItem('qtz_gh_repo', document.getElementById('gh-repo').value.trim());
-      localStorage.setItem('qtz_gh_branch', document.getElementById('gh-branch').value.trim() || 'main');
-      localStorage.setItem('qtz_gh_token', document.getElementById('gh-token').value.trim());
-      alert('Credenciales de GitHub guardadas en tu navegador.');
+    function saveGhConfig(silent = false) {
+      const owner = document.getElementById('gh-owner').value.trim() || 'Mictlxxxn';
+      const repo = document.getElementById('gh-repo').value.trim() || 'quetzaltv-panel';
+      const branch = document.getElementById('gh-branch').value.trim() || 'main';
+      const token = document.getElementById('gh-token').value.trim();
+      localStorage.setItem('qtz_gh_owner', owner);
+      localStorage.setItem('qtz_gh_repo', repo);
+      localStorage.setItem('qtz_gh_branch', branch);
+      localStorage.setItem('qtz_gh_token', token);
+      if (!silent) showToast('✓ Credenciales guardadas en tu navegador');
+    }
+
+    async function testGhToken() {
+      saveGhConfig(true);
+      const owner = localStorage.getItem('qtz_gh_owner');
+      const repo = localStorage.getItem('qtz_gh_repo');
+      const token = localStorage.getItem('qtz_gh_token');
+      if (!token) return showToast('⚠ Pega primero tu Token de GitHub (ghp_... o github_pat_...)', false);
+      setSyncPill('⏳ Verificando token...', '#f4c563');
+      try {
+        const r = await fetch(`https://api.github.com/repos/${owner}/${repo}`, {
+          headers: { 'Authorization': `Bearer ${token}`, 'Accept': 'application/vnd.github+json' }
+        });
+        if (r.status === 401) throw new Error('Token inválido o revocado (401). Genera uno nuevo.');
+        if (r.status === 404) throw new Error(`Repositorio ${owner}/${repo} no encontrado o el token no tiene acceso (404).`);
+        if (!r.ok) throw new Error('Error HTTP ' + r.status);
+        const info = await r.json();
+        if (info.permissions && info.permissions.push === false) {
+          throw new Error('El Token solo tiene permiso de lectura. Activa "repo" (Classic) o "Contents: Read and write" (Fine-grained).');
+        }
+        setSyncPill('✓ Token válido', '#00e5a3');
+        showToast('✓ Token válido con permiso de escritura en ' + owner + '/' + repo);
+        await loadDb();
+      } catch (e) {
+        setSyncPill('⚠ Token con error', '#ff6b6b');
+        alert('Error con el Token de GitHub:\n\n' + e.message);
+      }
     }
 
     async function loadDb() {
-      try {
-        const res = await fetch('./db.json?t=' + Date.now());
-        const raw = await res.json();
-        db = await decryptDbJson(raw);
-      } catch (e) {
-        console.warn('Error cargando/descifrando db.json:', e);
+      const owner = localStorage.getItem('qtz_gh_owner');
+      const repo = localStorage.getItem('qtz_gh_repo');
+      const branch = localStorage.getItem('qtz_gh_branch') || 'main';
+      const token = localStorage.getItem('qtz_gh_token');
+      let loaded = false;
+      if (owner && repo && token) {
+        try {
+          const apiRes = await fetch(`https://api.github.com/repos/${owner}/${repo}/contents/db.json?ref=${branch}&t=${Date.now()}`, {
+            headers: { 'Authorization': `Bearer ${token}`, 'Accept': 'application/vnd.github.raw' },
+            cache: 'no-store'
+          });
+          if (apiRes.ok) {
+            const raw = await apiRes.json();
+            db = await decryptDbJson(raw);
+            loaded = true;
+          }
+        } catch (e) {
+          console.warn('No se pudo leer vía API GitHub, usando CDN:', e);
+        }
+      }
+      if (!loaded) {
+        try {
+          const res = await fetch('./db.json?t=' + Date.now(), { cache: 'no-store' });
+          const raw = await res.json();
+          db = await decryptDbJson(raw);
+        } catch (e) {
+          console.warn('Error cargando/descifrando db.json:', e);
+        }
       }
       render();
     }
@@ -391,7 +444,7 @@
     }
 
     async function pushToGitHub(silent = false, reason = '') {
-      saveGhConfig();
+      saveGhConfig(true);
       const owner = localStorage.getItem('qtz_gh_owner');
       const repo = localStorage.getItem('qtz_gh_repo');
       const branch = localStorage.getItem('qtz_gh_branch') || 'main';
@@ -412,23 +465,41 @@
       const apiUrl = `https://api.github.com/repos/${owner}/${repo}/contents/db.json`;
       const headers = { 'Authorization': `Bearer ${token}`, 'Accept': 'application/vnd.github+json', 'Content-Type': 'application/json' };
       try {
-        let sha = undefined;
-        const getRes = await fetch(apiUrl + `?ref=${branch}&t=${Date.now()}`, { headers });
-        if (getRes.ok) {
-          const fileData = await getRes.json();
-          sha = fileData.sha;
+        const doPut = async () => {
+          let sha = undefined;
+          const getRes = await fetch(apiUrl + `?ref=${branch}&t=${Date.now()}`, { headers, cache: 'no-store' });
+          if (getRes.status === 401) throw new Error('Token inválido o expirado (401). Genera un nuevo Token en GitHub.');
+          if (getRes.status === 403) throw new Error('Token sin permisos suficientes (403). Activa permiso "repo" o "Contents: Read and write".');
+          if (getRes.ok) {
+            const fileData = await getRes.json();
+            sha = fileData.sha;
+          } else if (getRes.status !== 404) {
+            throw new Error('Error leyendo db.json (' + getRes.status + '): ' + (await getRes.text()));
+          }
+          const contentB64 = btoa(unescape(encodeURIComponent(JSON.stringify(encryptedObj, null, 2))));
+          const putRes = await fetch(apiUrl, {
+            method: 'PUT',
+            headers,
+            body: JSON.stringify({
+              message: 'Actualización cifrada Quetzal TV (' + db.updated_at + ')',
+              content: contentB64,
+              branch,
+              sha
+            })
+          });
+          return putRes;
+        };
+
+        let putRes = await doPut();
+        if (putRes.status === 409) {
+          putRes = await doPut();
         }
-        const contentB64 = btoa(unescape(encodeURIComponent(JSON.stringify(encryptedObj, null, 2))));
-        const putRes = await fetch(apiUrl, {
-          method: 'PUT',
-          headers,
-          body: JSON.stringify({
-            message: 'Actualización cifrada Quetzal TV (' + db.updated_at + ')',
-            content: contentB64,
-            branch,
-            sha
-          })
-        });
+        if (putRes.status === 403) {
+          throw new Error('El Token solo tiene lectura (403). En Classic PAT marca "repo"; en Fine-grained PAT activa "Contents: Read and write".');
+        }
+        if (putRes.status === 401) {
+          throw new Error('Token inválido o expirado (401).');
+        }
         if (!putRes.ok) throw new Error(await putRes.text());
         localStorage.removeItem('qtz_db_draft');
         setSyncPill('✓ Sincronizado (' + db.updated_at.slice(11) + ')', '#00e5a3');
