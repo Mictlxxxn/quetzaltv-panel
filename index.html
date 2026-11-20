@@ -60,6 +60,13 @@
     <input id="adm-user" type="text" placeholder="Usuario Administrador" autocomplete="username" />
     <input id="adm-pass" type="password" placeholder="Contraseña de Administrador" autocomplete="current-password" onkeydown="if(event.key==='Enter') doAdminLogin()" />
     <button class="btn" style="width:100%;padding:12px;" onclick="doAdminLogin()">🔓 INICIAR SESIÓN</button>
+    <div style="margin-top:24px;padding-top:18px;border-top:1px solid var(--card-border);">
+      <p style="margin-bottom:10px;color:var(--gold);font-weight:700;font-size:13px;">📲 DESCARGAR APLICACIONES OFICIALES</p>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;">
+        <a href="https://github.com/Mictlxxxn/quetzaltv-panel/releases/latest/download/QuetzalTV.apk" style="flex:1;min-width:160px;text-decoration:none;background:linear-gradient(135deg,#00e5a3,#00a878);color:#041510;font-weight:800;padding:10px 12px;border-radius:10px;font-size:13px;text-align:center;">📺 Quetzal TV 4K (TV)</a>
+        <a href="https://github.com/Mictlxxxn/quetzaltv-panel/releases/latest/download/GengarTV.apk" style="flex:1;min-width:160px;text-decoration:none;background:linear-gradient(135deg,#9b4dff,#ff2a55);color:#ffffff;font-weight:800;padding:10px 12px;border-radius:10px;font-size:13px;text-align:center;">👾 Gengar TV (Móvil)</a>
+      </div>
+    </div>
   </div>
 
   <!-- PANEL ADMINISTRATIVO (OCULTO HASTA INICIAR SESIÓN) -->
@@ -95,13 +102,39 @@
       </p>
     </div>
 
+    <!-- CENTRO DE DESCARGAS -->
+    <div class="card">
+      <h3>📲 Centro de Descargas — Elige la App a Descargar</h3>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px;">
+        <div style="background:#071310;border:1px solid #00e5a3;border-radius:12px;padding:14px;display:flex;justify-content:space-between;align-items:center;gap:12px;">
+          <div>
+            <b style="color:#00e5a3;font-size:15px;">📺 Quetzal TV 4K</b>
+            <div style="font-size:12px;color:#88c4b2;margin-top:3px;">Android TV / TV Box · TV en Vivo + VOD 4K HDR</div>
+          </div>
+          <a href="https://github.com/Mictlxxxn/quetzaltv-panel/releases/latest/download/QuetzalTV.apk" class="btn" style="text-decoration:none;white-space:nowrap;">Descargar APK</a>
+        </div>
+        <div style="background:#140b24;border:1px solid #9b4dff;border-radius:12px;padding:14px;display:flex;justify-content:space-between;align-items:center;gap:12px;">
+          <div>
+            <b style="color:#c77dff;font-size:15px;">👾 Gengar TV</b>
+            <div style="font-size:12px;color:#b8a4d9;margin-top:3px;">Móvil / Tablet · Películas y Series Premium</div>
+          </div>
+          <a href="https://github.com/Mictlxxxn/quetzaltv-panel/releases/latest/download/GengarTV.apk" class="btn" style="text-decoration:none;background:linear-gradient(135deg,#9b4dff,#ff2a55);color:#fff;white-space:nowrap;">Descargar APK</a>
+        </div>
+      </div>
+    </div>
+
     <!-- CREAR USUARIOS VIP -->
     <div class="card">
-      <h3>2. Usuarios VIP, Contraseñas y Control de TV Box (SN)</h3>
+      <h3>2. Usuarios VIP, Contraseñas y Control de TV Box / Móvil</h3>
       <div class="grid">
         <input id="u-name" placeholder="Usuario (ej. cliente1)" />
         <input id="u-pass" placeholder="Contraseña (ej. 123456)" value="123456" />
-        <input id="u-sn" placeholder="Serial SN de TV Box (opcional para fijar a 1 sola TV)" />
+        <input id="u-sn" placeholder="Serial SN de TV Box / Móvil (opcional)" />
+        <select id="u-scope">
+          <option value="ALL" selected>Acceso: Ambas Apps (Quetzal + Gengar)</option>
+          <option value="QUETZAL">Solo Quetzal TV 4K</option>
+          <option value="GENGAR">Solo Gengar TV</option>
+        </select>
         <select id="u-days">
           <option value="30m">Prueba 30 Minutos</option>
           <option value="24h">Prueba 24 Horas</option>
@@ -309,7 +342,7 @@
       document.getElementById('n-msg').value = (db.notice && db.notice.message) || '';
       document.getElementById('tbl-users').innerHTML = (db.users || []).map((u, idx) => `
         <tr>
-          <td><b>${u.user_id}</b><br><small style="color:var(--gold)">${u.plan_label || 'VIP'}</small></td>
+          <td><b>${u.user_id}</b><br><small style="color:var(--gold)">${u.plan_label || 'VIP'}</small> · <small style="color:#c77dff">${u.app_scope || 'ALL'}</small></td>
           <td><b style="color:var(--emerald)">${u.username}</b></td>
           <td><code>${u.password}</code></td>
           <td><code>${u.allowed_sn || 'Cualquier TV Box'}</code></td>
@@ -350,6 +383,7 @@
       const username = document.getElementById('u-name').value.trim();
       const password = document.getElementById('u-pass').value.trim() || '123456';
       const allowed_sn = document.getElementById('u-sn').value.trim().toUpperCase();
+      const app_scope = document.getElementById('u-scope').value || 'ALL';
       const dur = document.getElementById('u-days').value;
       if (!username) return alert('Ingresa un usuario');
       const labels = {
@@ -368,6 +402,7 @@
         username,
         password,
         plan_label: labels[dur] || 'VIP',
+        app_scope,
         max_devices: 2,
         allowed_sn,
         status: 'ACTIVE',
