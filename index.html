@@ -103,14 +103,18 @@
         <input id="u-pass" placeholder="Contraseña (ej. 123456)" value="123456" />
         <input id="u-sn" placeholder="Serial SN de TV Box (opcional para fijar a 1 sola TV)" />
         <select id="u-days">
-          <option value="30">30 Días VIP</option>
-          <option value="90">90 Días VIP</option>
-          <option value="365">365 Días VIP (1 Año)</option>
+          <option value="30m">Prueba 30 Minutos</option>
+          <option value="24h">Prueba 24 Horas</option>
+          <option value="7d">Cortesía 7 Días</option>
+          <option value="30d" selected>30 Días VIP (1 Mes)</option>
+          <option value="90d">90 Días VIP (3 Meses)</option>
+          <option value="365d">365 Días VIP (1 Año)</option>
+          <option value="INDEFINIDO">Cortesía / Tiempo Indefinido (∞)</option>
         </select>
         <button class="btn" onclick="addUser()">+ Agregar Usuario</button>
       </div>
       <table>
-        <thead><tr><th>ID</th><th>Usuario</th><th>Contraseña</th><th>SN Permitido (Opcional)</th><th>Sesión #</th><th>Estado</th><th>Vencimiento</th><th>Acciones</th></tr></thead>
+        <thead><tr><th>ID / Tipo</th><th>Usuario</th><th>Contraseña</th><th>SN Permitido (Opcional)</th><th>Sesión #</th><th>Estado</th><th>Vencimiento (UTC)</th><th>Acciones</th></tr></thead>
         <tbody id="tbl-users"></tbody>
       </table>
     </div>
@@ -305,17 +309,19 @@
       document.getElementById('n-msg').value = (db.notice && db.notice.message) || '';
       document.getElementById('tbl-users').innerHTML = (db.users || []).map((u, idx) => `
         <tr>
-          <td><b>${u.user_id}</b></td>
+          <td><b>${u.user_id}</b><br><small style="color:var(--gold)">${u.plan_label || 'VIP'}</small></td>
           <td><b style="color:var(--emerald)">${u.username}</b></td>
           <td><code>${u.password}</code></td>
           <td><code>${u.allowed_sn || 'Cualquier TV Box'}</code></td>
           <td>v${u.reset_token || 1}</td>
-          <td><span class="badge ${u.status === 'ACTIVE' ? 'badge-ok' : 'badge-off'}">${u.status}</span></td>
+          <td><span class="badge ${u.status === 'ACTIVE' ? 'badge-ok' : 'badge-off'}">${u.status === 'ACTIVE' ? 'ACTIVO' : 'CORTADO'}</span></td>
           <td>${u.expire_date}</td>
           <td>
-            <button class="btn-sm btn-info" onclick="renewUser(${idx})">+30 Días</button>
-            <button class="btn-sm btn-warn" onclick="forceRelogin(${idx})">Cerrar Sesión TV</button>
-            <button class="btn-sm btn-warn" onclick="toggleUser(${idx})">${u.status === 'ACTIVE' ? 'Suspender' : 'Activar'}</button>
+            <button class="btn-sm btn-info" onclick="extendUser(${idx}, '24h')">+24h</button>
+            <button class="btn-sm btn-info" onclick="extendUser(${idx}, '30d')">+30d</button>
+            <button class="btn-sm btn-info" onclick="setIndefinite(${idx})" title="Hacer cortesía indefinida">∞</button>
+            <button class="btn-sm btn-warn" onclick="forceRelogin(${idx})">Cerrar TV</button>
+            <button class="btn-sm ${u.status === 'ACTIVE' ? 'btn-danger' : 'btn-info'}" onclick="toggleUser(${idx})">${u.status === 'ACTIVE' ? 'Cortar Servicio' : 'Reactivar'}</button>
             <button class="btn-sm btn-danger" onclick="delUser(${idx})">✕</button>
           </td>
         </tr>
@@ -332,18 +338,36 @@
       `).join('');
     }
 
+    function calcExpire(dur, baseMs = Date.now()) {
+      if (dur === 'INDEFINIDO') return 'INDEFINIDO';
+      if (dur === '30m') return new Date(baseMs + 30 * 60000).toISOString().slice(0, 16).replace('T', ' ');
+      if (dur === '24h') return new Date(baseMs + 24 * 3600000).toISOString().slice(0, 16).replace('T', ' ');
+      const days = parseInt(dur, 10) || 30;
+      return new Date(baseMs + days * 86400000).toISOString().slice(0, 10);
+    }
+
     function addUser() {
       const username = document.getElementById('u-name').value.trim();
       const password = document.getElementById('u-pass').value.trim() || '123456';
       const allowed_sn = document.getElementById('u-sn').value.trim().toUpperCase();
-      const days = parseInt(document.getElementById('u-days').value);
+      const dur = document.getElementById('u-days').value;
       if (!username) return alert('Ingresa un usuario');
-      const exp = new Date(Date.now() + days * 86400000).toISOString().slice(0, 10);
+      const labels = {
+        '30m': 'Prueba 30 min',
+        '24h': 'Prueba 24 hrs',
+        '7d': 'Cortesía 7d',
+        '30d': 'VIP 30 días',
+        '90d': 'VIP 90 días',
+        '365d': 'VIP 1 Año',
+        'INDEFINIDO': 'Cortesía ∞'
+      };
+      const exp = calcExpire(dur);
       db.users.unshift({
         id: Date.now(),
         user_id: 'QTZ-' + Math.floor(1000 + Math.random() * 9000),
         username,
         password,
+        plan_label: labels[dur] || 'VIP',
         max_devices: 2,
         allowed_sn,
         status: 'ACTIVE',
@@ -353,16 +377,28 @@
       document.getElementById('u-name').value = '';
       document.getElementById('u-sn').value = '';
       render();
-      scheduleAutoSave('Usuario agregado');
+      scheduleAutoSave('Usuario agregado (' + (labels[dur] || dur) + ')');
     }
 
-    function renewUser(idx) {
+    function extendUser(idx, dur) {
       const u = db.users[idx];
-      const base = Math.max(Date.now(), new Date(u.expire_date).getTime() || Date.now());
-      u.expire_date = new Date(base + 30 * 86400000).toISOString().slice(0, 10);
+      const curMs = (u.expire_date && u.expire_date !== 'INDEFINIDO')
+        ? (new Date(u.expire_date.replace(' ', 'T') + (u.expire_date.length === 10 ? 'T23:59:00Z' : ':00Z')).getTime() || Date.now())
+        : Date.now();
+      const base = Math.max(Date.now(), curMs);
+      u.expire_date = calcExpire(dur, base);
       u.status = 'ACTIVE';
       render();
-      scheduleAutoSave('Suscripción renovada +30d');
+      scheduleAutoSave('Tiempo extendido (+' + dur + ')');
+    }
+
+    function setIndefinite(idx) {
+      const u = db.users[idx];
+      u.expire_date = 'INDEFINIDO';
+      u.plan_label = 'Cortesía ∞';
+      u.status = 'ACTIVE';
+      render();
+      scheduleAutoSave('Cortesía indefinida asignada a ' + u.username);
     }
 
     function forceRelogin(idx) {
